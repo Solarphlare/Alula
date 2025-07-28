@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "@discordjs/builders";
-import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Channel, ChatInputCommandInteraction, ComponentType, ThreadChannel } from "discord.js";
+import { ActionRowBuilder, ButtonBuilder, ButtonInteraction, ButtonStyle, Channel, ChatInputCommandInteraction, ComponentType, GuildTextBasedChannel, ThreadChannel } from "discord.js";
 import { mongoDatabase } from "../db/mongoInstance";
 import ActiveThread from "../types/ActiveThread";
 
@@ -26,7 +26,7 @@ export default async function archiveThread(interaction: ChatInputCommandInterac
         channel = (interaction.client.channels.cache.get(threadId) ?? await interaction.client.channels.fetch(threadId))!;
     }
     catch {
-        interaction.channel!.send(`That thread doesn't seem to exist.\n-# Did you know that ${quip}?`);
+        (interaction.channel! as GuildTextBasedChannel).send(`That thread doesn't seem to exist.\n-# Did you know that ${quip}?`);
         return;
     }
 

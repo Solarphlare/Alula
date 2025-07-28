@@ -1,4 +1,4 @@
-import { ActionRowBuilder, ForumChannel, Message, ButtonStyle, ButtonBuilder, ComponentType, EmbedBuilder, AllowedMentionsTypes, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction, GuildMember, Guild, ThreadChannel } from "discord.js";
+import { ActionRowBuilder, ForumChannel, Message, ButtonStyle, ButtonBuilder, ComponentType, EmbedBuilder, AllowedMentionsTypes, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, StringSelectMenuInteraction, GuildMember, Guild, ThreadChannel, DMChannel } from "discord.js";
 import { mongoDatabase } from "../db/mongoInstance";
 import { MODERATION_FORUM_CHANNEL_ID, NEW_THREAD_NOTIFICATION_ROLE_ID, MODMAIL_BAN_ROLE_ID, TEXT_COMMAND_PREFIX } from "../constants";
 import ActiveThread from "../types/ActiveThread";
@@ -15,12 +15,14 @@ const typeSelectionInProgressUsers: string[] = [];
 
 async function createNewThread(message: Message, guildMember: GuildMember, guild: Guild) {
     const guildConfig = await mongoDatabase.collection<GuildConfig>("guildconfigs").findOne({ guildId: guild.id });
+    const channel = message.channel as DMChannel;
+
     if (guildConfig && guildConfig.modmailDisabled) {
-        await message.channel.send("Modmail submissions aren't currently being accepted right now. Please try again later!");
+        await channel.send("Modmail submissions aren't currently being accepted right now. Please try again later!");
         return;
     }
 
-    const mailTypeMessage = await message.channel.send({
+    const mailTypeMessage = await channel.send({
         embeds: [
             new EmbedBuilder()
                 .setTitle("What type of request are you making?")
@@ -173,7 +175,7 @@ export default async function handlePrivateMessage(message: Message) {
     const guildMember = await guild.members.fetch(message.author.id);
 
     if (guildMember.roles.cache.has(MODMAIL_BAN_ROLE_ID)) {
-        message.channel.send("Your modmail priveliges have been revoked by a staff member. If you believe that this is a mistake, please contact a staff member via other means.");
+        (message.channel as DMChannel).send("Your modmail priveliges have been revoked by a staff member. If you believe that this is a mistake, please contact a staff member via other means.");
         return;
     }
 

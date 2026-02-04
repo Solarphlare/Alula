@@ -5,7 +5,7 @@ import { ThreadType } from "../types/ThreadType";
 import ConversationDetails from "../types/ConversationDetails";
 import Attachment from "../types/Attachment";
 import { ElementEntry } from "../types/ElementEntry";
-import { minify } from "html-minifier";
+import { minify } from "html-minifier-next";
 import bytesToSize from "../util/fileSizes";
 import { ATTACHMENT_RETREIVAL_DOMAIN, TEXT_COMMAND_PREFIX } from "../constants";
 import { mongoDatabase } from "../db/mongoInstance";

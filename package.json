@@ -1,9 +1,10 @@
 {
   "dependencies": {
+    "@discordjs/builders": "^1.13.1",
     "cheerio": "^1.0.0-rc.12",
-    "discord.js": "^14.14.1",
+    "discord.js": "^14.25.1",
     "express": "^4.21.2",
-    "html-minifier": "^4.0.0",
+    "html-minifier-next": "^5.0.2",
     "moment": "^2.29.4",
     "mongodb": "^6.1.0",
     "node-schedule": "^2.1.1",

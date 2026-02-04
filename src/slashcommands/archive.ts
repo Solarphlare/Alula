@@ -27,7 +27,7 @@ export default async function archiveThread(interaction: ChatInputCommandInterac
 
     let channel: Channel;
     try {
-        channel = (interaction.client.channels.cache.get(threadId) ?? await interaction.client.channels.fetch(threadId))!;
+        channel = (await interaction.client.channels.fetch(threadId))!;
     }
     catch {
         (interaction.channel! as GuildTextBasedChannel).send(`That thread doesn't seem to exist.\n-# Did you know that ${quip}?`);

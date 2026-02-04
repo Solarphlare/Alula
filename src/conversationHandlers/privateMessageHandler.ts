@@ -190,7 +190,7 @@ async function createNewThread(message: Message, guildMember: GuildMember, guild
  */
 export default async function handlePrivateMessage(message: Message) {
     const activeThread = await mongoDatabase.collection<ActiveThread>("active_threads").findOne({ userId: message.author.id });
-    const guild = ((message.client.channels.cache.get(MODERATION_FORUM_CHANNEL_ID) ?? await message.client.channels.fetch(MODERATION_FORUM_CHANNEL_ID)) as ForumChannel).guild;
+    const guild = (await message.client.channels.fetch(MODERATION_FORUM_CHANNEL_ID) as ForumChannel).guild;
     const guildMember = await guild.members.fetch(message.author.id);
 
     if (guildMember.roles.cache.has(MODMAIL_BAN_ROLE_ID)) {
@@ -202,8 +202,8 @@ export default async function handlePrivateMessage(message: Message) {
     if (typeSelectionInProgressUsers.includes(message.author.id)) return;
 
     if (activeThread) {
-        const forumChannel = (message.client.channels.cache.get(threadIds[activeThread.type]) ?? await message.client.channels.fetch(threadIds[activeThread.type])) as ForumChannel;
-        const threadChannel = (forumChannel.threads.cache.get(activeThread.receivingThreadId) ?? await forumChannel.threads.fetch(activeThread.receivingThreadId)) as ThreadChannel;
+        const forumChannel = (await message.client.channels.fetch(threadIds[activeThread.type])) as ForumChannel;
+        const threadChannel = (await forumChannel.threads.fetch(activeThread.receivingThreadId)) as ThreadChannel;
 
         if (threadChannel.archived) { // Check for dangling threads in the db, and remove any if present.
             await mongoDatabase.collection<ActiveThread>("active_threads").deleteMany({ userId: message.author.id });

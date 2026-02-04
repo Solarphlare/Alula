@@ -10,6 +10,6 @@ export default async function disableModmail(interaction: ChatInputCommandIntera
     await config.updateOne({ guildId: interaction.guildId! }, { $set: { modmailDisabled: newState } }, { upsert: true });
     await interaction.reply(`New modmail threads have been ${newState ? "disabled" : "enabled"}.`);
 
-    const logChannel = (interaction.client.channels.cache.get(DEBUG_LOG_CHANNEL_ID) ?? await interaction.client.channels.fetch(DEBUG_LOG_CHANNEL_ID)) as GuildTextBasedChannel;
+    const logChannel = (await interaction.client.channels.fetch(DEBUG_LOG_CHANNEL_ID)) as GuildTextBasedChannel;
     await logChannel.send(`New modmail submissions have been ${newState ? "disabled" : "enabled"} by ${interaction.user.username}.`);
 }

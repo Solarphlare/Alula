@@ -24,7 +24,7 @@ async function createNewThread(message: Message, guildMember: GuildMember, guild
     const channel = message.channel as DMChannel;
 
     // Check if modmail is disabled
-    if (guildConfig && guildConfig.modmailDisabled) {
+    if (guildConfig?.modmailDisabled) {
         await channel.send("Modmail submissions aren't currently being accepted right now. Please try again later!");
         return;
     }

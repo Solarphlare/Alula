@@ -8,6 +8,12 @@ import isModeratorCompletelyAnonymous from "../util/anonymousChecks";
 import generateTranscript from "../transcript/newTranscriptGenerator";
 import Analytics from "../types/Analytics";
 
+/**
+ * Close a modmail thread.
+ * @param client The Discord client.
+ * @param channelId The ID of the thread channel to close.
+ * @param invoker The user who invoked the thread closure.
+ */
 export default async function closeThread(client: Client, channelId: string, invoker: User) {
     const activeThread = await mongoDatabase.collection<ActiveThread>("active_threads").findOne({ receivingThreadId: channelId });
     const thread = await client.channels.fetch(channelId) as ThreadChannel;

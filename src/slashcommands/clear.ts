@@ -3,6 +3,10 @@ import ActiveThread from "../types/ActiveThread";
 import { mongoDatabase } from "../db/mongoInstance";
 import closeThread from "../threads/closeThread";
 
+/**
+ * Clear a user's entry from the modmail database.
+ * @param interaction The interaction for the command invocation.
+ */
 export default async function clearUserEntry(interaction: ChatInputCommandInteraction) {
     const targetUser = interaction.options.getUser("user", true);
     const activeThread = await mongoDatabase.collection<ActiveThread>("active_threads").findOne({ userId: targetUser.id });

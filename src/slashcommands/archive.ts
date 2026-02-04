@@ -11,6 +11,10 @@ const quips = [
     "Nico's Crown Vic is plotting its vengenace on him"
 ];
 
+/**
+ * Archive a modmail thread.
+ * @param interaction The interaction for the command invocation.
+ */
 export default async function archiveThread(interaction: ChatInputCommandInteraction) {
     const threadId = interaction.options.getString("thread_id", true);
 

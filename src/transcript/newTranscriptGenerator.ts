@@ -14,6 +14,13 @@ import isModeratorCompletelyAnonymous from "../util/anonymousChecks";
 
 const FILE_SVG = `<svg class="file-icon" xmlns="http://www.w3.org/2000/svg" height="24" viewBox="0 -960 960 960" width="24"><path d="M240-80q-33 0-56.5-23.5T160-160v-640q0-33 23.5-56.5T240-880h320l240 240v480q0 33-23.5 56.5T720-80H240Zm280-520v-200H240v640h480v-440H520ZM240-800v200-200 640-640Z"></path></svg>`;
 
+/**
+ * Generate an HTML transcript of a modmail conversation.
+ * @param details Conversation details.
+ * @param messages The messages in the conversation.
+ * @param moderators The moderators who attended the conversation.
+ * @param isReportForUser Whether the transcript is being generated for the user (`true`) or for staff (`false`).
+ */
 export default async function generateTranscript(details: ConversationDetails, messages: Message[], moderators: Collection<string, GuildMember>, isReportForUser: boolean) {
     const activeThread = (await mongoDatabase.collection<ActiveThread>("active_threads").findOne({ receivingThreadId: details.threadId }))!;
     const template = await readFile("./src/transcript/transcript-template.html", 'utf-8');
@@ -146,10 +153,10 @@ export default async function generateTranscript(details: ConversationDetails, m
 
             /*
              * Format the message content by:
-                *  - Removing trailing newlines
-                * - Replacing URLs with anchor tags
-                * - Replacing newlines with <br> tags
-                * - Removing the anonymous identity command if it's the first part of the message
+             *  - Removing trailing newlines
+             *  - Replacing URLs with anchor tags
+             *  - Replacing newlines with <br> tags
+             *  - Removing the anonymous identity command if it's the first part of the message
             */
             filteredMessageContent = filteredMessageContent
                 .replace(/\n+$/, "")

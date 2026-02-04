@@ -13,10 +13,17 @@ import Analytics from "../types/Analytics";
  */
 const typeSelectionInProgressUsers: string[] = [];
 
+/**
+ * Create a new modmail thread.
+ * @param message The initial message sent by the user.
+ * @param guildMember The guild member object for the user.
+ * @param guild The guild where the modmail is being handled.
+ */
 async function createNewThread(message: Message, guildMember: GuildMember, guild: Guild) {
     const guildConfig = await mongoDatabase.collection<GuildConfig>("guildconfigs").findOne({ guildId: guild.id });
     const channel = message.channel as DMChannel;
 
+    // Check if modmail is disabled
     if (guildConfig && guildConfig.modmailDisabled) {
         await channel.send("Modmail submissions aren't currently being accepted right now. Please try again later!");
         return;
@@ -66,8 +73,10 @@ async function createNewThread(message: Message, guildMember: GuildMember, guild
         ]
     });
 
+    // Await response
     let response: StringSelectMenuInteraction;
     try {
+        // Add users to in-progress list to prevent multiple messages.
         typeSelectionInProgressUsers.push(message.author.id);
         response = await mailTypeMessage.awaitMessageComponent<ComponentType.StringSelect>({ time: 60000 });
     }
@@ -80,16 +89,19 @@ async function createNewThread(message: Message, guildMember: GuildMember, guild
     await response.deferUpdate();
     const threadType = response.values[0] as ThreadType;
 
+    // Check if appeals threads are being accepted or not.
     if (threadType === ThreadType.APPEAL && guildConfig?.appealsDisabled) {
         await mailTypeMessage.edit({ content: "Appeals aren't currently being accepted at this time. Please try again later.", components: [], embeds: [] });
         typeSelectionInProgressUsers.splice(typeSelectionInProgressUsers.indexOf(message.author.id), 1);
         return;
     }
 
+    // Spawn a new forum channel, set up the webhook, and forward the initial message.
     const forumChannel = await message.client.channels.fetch(threadIds[threadType]) as ForumChannel;
     const forumChannelWebhooks = await forumChannel.fetchWebhooks();
     const webhook = forumChannelWebhooks.size > 0 ? forumChannelWebhooks.first()! : await forumChannel.createWebhook({ name: "Modmail Webhook", reason: "No webhook was present for the forum channel." });
 
+    // As we're done with type selection, remove user from in-progress list.
     typeSelectionInProgressUsers.splice(typeSelectionInProgressUsers.indexOf(message.author.id), 1);
 
     const newThread = await forumChannel.threads.create({
@@ -119,6 +131,7 @@ async function createNewThread(message: Message, guildMember: GuildMember, guild
 
     await mongoDatabase.collection<Analytics>("analytics").updateOne({ guild: guild.id }, { $inc: { openedThreads: 1 } }, { upsert: true });
 
+    // Collect any attached files that are under 25MB, and append any over that limit to the message content via their CDN URLs.
     const files = message.attachments.filter(attachment => attachment.size <= 25000000).map(attachment => attachment.url);
     const leftoverFiles = message.attachments.filter(attachment => attachment.size > 25000000);
 
@@ -130,6 +143,7 @@ async function createNewThread(message: Message, guildMember: GuildMember, guild
         });
     }
 
+    // Split the message into chunks in order to avoid exceeding Discord's message length limits.
     const messageContentSplit = splitMessage(messageContent);
     for (let i = 0; i < messageContentSplit.length; i++) {
         const result = await webhook.send({
@@ -144,6 +158,7 @@ async function createNewThread(message: Message, guildMember: GuildMember, guild
         await mongoDatabase.collection<ActiveThread>("active_threads").updateOne({ userId: message.author.id }, { $push: { webhookMessageMap: { webhookMessageId: result.id, originalMessageId: message.id } } });
     }
 
+    // Message likely consisted of only media
     if (messageContentSplit.length === 0) {
         const result = await webhook.send({
             threadId: newThread.id,
@@ -169,6 +184,10 @@ async function createNewThread(message: Message, guildMember: GuildMember, guild
     });
 }
 
+/**
+ * Handle an incoming private message.
+ * @param message The message to handle.
+ */
 export default async function handlePrivateMessage(message: Message) {
     const activeThread = await mongoDatabase.collection<ActiveThread>("active_threads").findOne({ userId: message.author.id });
     const guild = ((message.client.channels.cache.get(MODERATION_FORUM_CHANNEL_ID) ?? await message.client.channels.fetch(MODERATION_FORUM_CHANNEL_ID)) as ForumChannel).guild;
@@ -179,24 +198,28 @@ export default async function handlePrivateMessage(message: Message) {
         return;
     }
 
+    // Ignore if user is already in the process of selecting a thread type.
     if (typeSelectionInProgressUsers.includes(message.author.id)) return;
 
     if (activeThread) {
         const forumChannel = (message.client.channels.cache.get(threadIds[activeThread.type]) ?? await message.client.channels.fetch(threadIds[activeThread.type])) as ForumChannel;
         const threadChannel = (forumChannel.threads.cache.get(activeThread.receivingThreadId) ?? await forumChannel.threads.fetch(activeThread.receivingThreadId)) as ThreadChannel;
 
-        if (threadChannel.archived) {
+        if (threadChannel.archived) { // Check for dangling threads in the db, and remove any if present.
             await mongoDatabase.collection<ActiveThread>("active_threads").deleteMany({ userId: message.author.id });
             createNewThread(message, guildMember, guild);
             return;
         }
 
+        // Pull the webhook for the forum channel.
         const forumChannelWebhooks = await forumChannel.fetchWebhooks();
         const webhook = forumChannelWebhooks.size > 0 ? forumChannelWebhooks.first()! : await forumChannel.createWebhook({ name: "Modmail Webhook", reason: "No webhook was present for the forum channel." });
 
+        // Collect any attached files that are under 25MB, and append any over that limit to the message content via their CDN URLs.
         const files = message.attachments.filter(attachment => attachment.size <= 25000000).map(attachment => attachment.url);
         const leftoverFiles = message.attachments.filter(attachment => attachment.size > 25000000);
 
+        // Append leftover file URLs to message content.
         let messageContent = message.content.replace(/<:(\w+):\d+>/g, ":$1:");
         if (leftoverFiles.size > 0) {
             messageContent += `\n`;
@@ -205,6 +228,7 @@ export default async function handlePrivateMessage(message: Message) {
             });
         }
 
+        // Split the message into chunks in order to avoid exceeding Discord's message length limits.
         const messageContentSplit = splitMessage(messageContent);
         for (let i = 0; i < messageContentSplit.length; i++) {
             const result = await webhook.send({
@@ -219,6 +243,7 @@ export default async function handlePrivateMessage(message: Message) {
             await mongoDatabase.collection<ActiveThread>("active_threads").updateOne({ userId: message.author.id }, { $push: { webhookMessageMap: { webhookMessageId: result.id, originalMessageId: message.id } } });
         }
 
+        // Likely only media in the message.
         if (messageContentSplit.length === 0) {
             const result = await webhook.send({
                 threadId: activeThread.receivingThreadId,
